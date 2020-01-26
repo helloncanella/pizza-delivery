@@ -1,13 +1,14 @@
 const validate = require("../helpers/validate");
 const hash = require("../helpers/hash");
 const randomString = require("../helpers/randomString");
+const crud = require("../lib/crud");
 
 module.exports = {
   notFound(__, callback) {
     callback(404);
   },
   signup({ method, payload = {} } = {}, callback) {
-    if (method !== "POST") callback(500, { Error: "method not available" });
+    if (method !== "post") callback(500, { Error: "method not available" });
 
     const { name, email, address, password } = payload;
     const error = validate({ name, email, address, password });
@@ -16,43 +17,28 @@ module.exports = {
       return callback(500, { Error: error });
     }
 
-    const user = {
-      id: randomString(20),
-      name,
-      email,
-      address,
-      hashedPassword: hash(password)
-    };
+    crud.read("user", email, (err, data) => {
+      if (data && !err) {
+        const error = "The email " + email + " is already used";
+        return callback(500, { Error: error });
+      }
 
-    const createUser = new Promise((resolve, reject) => {
-      crud.create("user", user, err => {
-        if (err) return reject(err);
-        resolve({ user });
-      });
-    });
-
-    const createToken = new Promise((resolve, reject) => {
-      const data = {
+      const user = {
         id: randomString(20),
-        userID: user.id,
-        expires: Date.now() + 1000 * 60 * 60
+        name,
+        email,
+        address,
+        hashedPassword: hash(password)
       };
 
-      crud.create("token", data, err => {
-        if (err) return reject(err);
-        resolve({ token: tokenID });
+      crud.create("user", user.email, user, err => {
+        if (err) return callback(500, { Error: err });
+        callback(200, user);
       });
     });
-
-    return Promise.all([createUser, createToken])
-      .then(([userPayload, tokenPayload]) => {
-        const payload = Object.assign({}, userPayload, tokenPayload);
-        callback(200, payload);
-      })
-      .catch(e => callback(500, { Error: e }));
   },
 
-  login() {},
+  login({ payload }, callback) {},
   logout() {},
   "edit-user": function editUser({ id }, callback) {},
   "delete-user": function deleteUser({ id }, callback) {}

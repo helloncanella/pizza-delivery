@@ -6,7 +6,7 @@ module.exports = function randomString(length) {
 
     var str = "";
 
-    for (i = 1; i <= strLength; i++) {
+    for (i = 1; i <= length; i++) {
       var randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
       str += randomChar;
     }

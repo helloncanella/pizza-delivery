@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
 
     const data = {
       queryStringObject: parsedUrl.query,
-      method: req.method.toLocaleLowerCase(),
+      method: req.method.toLowerCase(),
       headers: req.headers,
       payload: parseJSON(buffer),
       trimmedPath: (() => {
