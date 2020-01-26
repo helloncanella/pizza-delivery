@@ -3,6 +3,7 @@ const http = require("http");
 const url = require("url");
 const config = require("./config");
 const parseJSON = require("./helpers/parseJSON");
+const router = require("./router");
 
 const server = http.createServer((req, res) => {
   const decoder = new StringDecoder("utf-8");
@@ -10,14 +11,14 @@ const server = http.createServer((req, res) => {
   let buffer = "";
 
   req.on("data", data => {
-    console.log("req.on.data", data, decoder.write(data));
+    // console.log("req.on.data", data, decoder.write(data));
     buffer += decoder.write(data);
   });
 
   req.on("end", () => {
     const decoderEnd = decoder.end();
-    console.log("req.on.end", decoderEnd);
-    buffer += decoderEnd();
+    // console.log("req.on.end", decoderEnd);
+    buffer += decoderEnd;
 
     const parsedUrl = url.parse(req.url, true);
 
