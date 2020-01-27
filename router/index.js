@@ -38,8 +38,39 @@ module.exports = {
     });
   },
 
-  login({ payload }, callback) {},
-  logout() {},
+  login({ payload }, callback) {
+    const { email, password } = payload;
+    const error = validate({ email, password });
+    if (error) return callback(500, { Error: error });
+
+    crud.read("user", email, (err, userData) => {
+      if (err) return callback(500, { Error: err });
+
+      if (userData) {
+        const passwordIsCorrect = userData.hashedPassword === hash(password);
+
+        if (passwordIsCorrect) {
+          const tokenData = {
+            id: randomString(30),
+            userID: userData.id,
+            expires: Date.now() + 1000 * 60 * 60
+          };
+
+          return crud.create("token", tokenData.id, tokenData, err => {
+            if (err) return callback(500, { Error: err });
+            callback(200, { token: tokenData.id });
+          });
+        }
+
+        return callback(401, { Error: "Email or password incorrect" });
+      }
+
+      return callback(401, { Error: "Email or password incorrect" });
+    });
+  },
+  logout({ payload }) {
+    //  return crud.delete("token", pal)
+  },
   "edit-user": function editUser({ id }, callback) {},
   "delete-user": function deleteUser({ id }, callback) {}
 };
