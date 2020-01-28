@@ -1,6 +1,7 @@
 const validate = require("../helpers/validate");
 const hash = require("../helpers/hash");
 const randomString = require("../helpers/randomString");
+const verifyToken = require("../helpers/verifyToken");
 const crud = require("../lib/crud");
 
 module.exports = {
@@ -38,7 +39,12 @@ module.exports = {
     });
   },
 
-  login({ payload }, callback) {
+  login({ payload, method }, callback) {
+    if (method !== "post")
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
     const { email, password } = payload;
     const error = validate({ email, password });
     if (error) return callback(500, { Error: error });
@@ -68,9 +74,48 @@ module.exports = {
       return callback(401, { Error: "Email or password incorrect" });
     });
   },
-  logout({ payload }) {
+  logout({ payload, method }, callback) {
+    if (method !== "post")
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
+    const { email, token } = payload;
+
+    const error = validate({ email });
+    if (error) return callback(500, { Error: error });
+
+    verifyToken(token, email, tokenIsValid => {
+      if (!tokenIsValid)
+        return callback(401, { Error: "Email or token invalid" });
+
+      return crud.delete("token", token, err => {
+        if (err) return callback(500, { Error: "Problem to logout" });
+        callback(200);
+      });
+    });
     //  return crud.delete("token", pal)
   },
-  "edit-user": function editUser({ id }, callback) {},
+  "edit-user": function editUser({ payload, method }, callback) {
+    if (["update", "post"].indexOf(method) === -1)
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
+    const { email, token, update } = payload;
+
+    const error = validate(update);
+    if (error) return callback(500, { Error: error });
+
+    verifyToken(token, email, tokenIsValid => {
+      if (!tokenIsValid)
+        return callback(401, { Error: "Email or token invalid" });
+
+      return crud.update("user", email, update, (err, newData) => {
+        if (err) return callback(500, { Error: "Problem to logout" });
+        callback(200, newData);
+      });
+    });
+  },
   "delete-user": function deleteUser({ id }, callback) {}
 };
