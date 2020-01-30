@@ -1,0 +1,14 @@
+curl -s --user 'api:key-6d5824c0a0f088274329c74156259e3d' \
+        https://api.mailgun.net/v3/sandbox7f6db284168b40278fae6078fa110eb5.mailgun.org/messages \
+        -F from='Excited User <mailgun@sandbox7f6db284168b40278fae6078fa110eb5.mailgun.org>' \
+        -F to=helloncanella@gmail.com \
+        -F text='Testing some Mailgun awesomeness!'
+
+
+        curl -s --user 'api:YOUR_API_KEY' \
+	https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages \
+	-F from='Excited User <mailgun@YOUR_DOMAIN_NAME>' \
+	-F to=YOU@YOUR_DOMAIN_NAME \
+	-F to=bar@example.com \
+	-F subject='Hello' \
+	-F text='Testing some Mailgun awesomeness!'

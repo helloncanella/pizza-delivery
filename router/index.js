@@ -50,7 +50,7 @@ module.exports = {
     if (error) return callback(500, { Error: error });
 
     crud.read("user", email, (err, userData) => {
-      if (err) return callback(500, { Error: err });
+      if (err) return callback(500, { Error: "user doesnt exist" });
 
       if (userData) {
         const passwordIsCorrect = userData.hashedPassword === hash(password);
@@ -111,11 +111,53 @@ module.exports = {
       if (!tokenIsValid)
         return callback(401, { Error: "Email or token invalid" });
 
-      return crud.update("user", email, update, (err, newData) => {
-        if (err) return callback(500, { Error: "Problem to logout" });
-        callback(200, newData);
-      });
+      return crud.update(
+        "user",
+        email,
+        update,
+        update.email,
+        (err, newData) => {
+          if (err) return callback(500, { Error: "Problem to logout" });
+
+          delete newData.hashedPassword;
+
+          callback(200, newData);
+        }
+      );
     });
   },
-  "delete-user": function deleteUser({ id }, callback) {}
+  "delete-user": function deleteUser({ payload, method }, callback) {
+    if (["delete", "post"].indexOf(method) === -1)
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
+    const { email, token } = payload;
+
+    const error = validate({ email });
+    if (error) return callback(500, { Error: error });
+
+    verifyToken(token, email, tokenIsValid => {
+      if (!tokenIsValid)
+        return callback(401, { Error: "Email or token invalid" });
+
+      const deleteUser = new Promise((res, rej) =>
+        crud.delete("user", email, err => {
+          if (err) return rej(err);
+          res();
+        })
+      );
+
+      const deleteToken = new Promise((res, rej) =>
+        crud.delete("token", token, err => {
+          if (err) return rej(err);
+          res();
+        })
+      );
+
+      return Promise.all([deleteUser, deleteToken])
+        .then(() => callback(200))
+        .catch(e => callback(500, { Error: "Problem to delete user" }));
+    });
+  }
 };
