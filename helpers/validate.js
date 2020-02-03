@@ -13,6 +13,14 @@ module.exports = function validate(object = {}) {
 };
 
 const validators = {
+  order(value) {
+    if (
+      !Array.isArray(value) ||
+      value.some(i => !i.id || !i.quantity || typeof i.quantity !== "number")
+    ) {
+      return `Your order should be an array with the "id" and "quantity" (a number) of each product`;
+    }
+  },
   email(value) {
     if (!isEmail(value)) return "invalid email";
   },

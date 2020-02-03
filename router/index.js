@@ -3,10 +3,66 @@ const hash = require("../helpers/hash");
 const randomString = require("../helpers/randomString");
 const verifyToken = require("../helpers/verifyToken");
 const crud = require("../lib/crud");
-
+const menu = require("../.data/menu/menu.json");
 module.exports = {
   notFound(__, callback) {
     callback(404);
+  },
+  menu({ method, headers, payload }, callback) {
+    if (method !== "get")
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
+    const { token, email } = headers;
+
+    const error = validate({ email });
+    if (error) return callback(500, { Error: error });
+
+    verifyToken(token, email, tokenIsValid => {
+      if (!tokenIsValid)
+        return callback(401, { Error: "Email or token invalid" });
+
+      callback(200, { menu });
+    });
+  },
+  async "place-order"(
+    { payload: { order }, headers: { token, email }, method },
+    callback
+  ) {
+    if (method !== "post")
+      return callback(500, {
+        Error: `Method ${method.toUpperCase()} not available`
+      });
+
+    const error = validate({ email, order });
+    if (error) return callback(500, { Error: error });
+
+    const tokenIsValid = await new Promise(res =>
+      verifyToken(token, email, res)
+    );
+
+    if (!tokenIsValid)
+      return callback(401, { Error: "Email or token invalid" });
+
+    const userID = await new Promise((res, rej) => {
+      crud.read("user", email, (err, data) => {
+        if (err) return rej(err);
+        res(data.id);
+      });
+    }).catch(e => callback(500, { Error: "user not found" }));
+
+    if (!userID) return;
+
+    const orderID = await new Promise((res, rej) => {
+      const id = randomString(20);
+      crud.create("order", id, { order, userID }, err => {
+        if (err) return rej(err);
+        res(id);
+      });
+    }).catch(e => callback(500, { Error: "Problem on placing order" }));
+
+    callback(200, { orderID });
   },
   signup({ method, payload = {} } = {}, callback) {
     if (method !== "post") callback(500, { Error: "method not available" });
